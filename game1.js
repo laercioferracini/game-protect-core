@@ -92,7 +92,7 @@ class Enemy {
 //Instating
 const x = canvas.width / 2;
 const y = canvas.height / 2;
-const p = new Player(c, x, y, 30, 'white');
+const player = new Player(c, x, y, 30, 'white');
 //array to group the bullets and enemies
 const bullets = [];
 const enemies = [];
@@ -129,7 +129,7 @@ function animate() {
     //clean the frame
     c.clearRect(0, 0, canvas.width, canvas.height);
     //draw the player
-    p.draw();
+    player.draw();
     //draw and update the bullets
     bullets.forEach((b) => {
         b.update();
@@ -137,6 +137,13 @@ function animate() {
 
     enemies.forEach((enemy, index) => {
         enemy.update();
+        const distp = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+        //end game
+        if (distp - player.radius - enemy.radius + 1 < 1) {
+            console.log('Game over!');
+            cancelAnimationFrame(frame);
+        }
+
         bullets.forEach((b, bulletIndex) => {
             const dist = Math.hypot(b.x - enemy.x, b.y - enemy.y);
 
