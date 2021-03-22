@@ -1,3 +1,4 @@
+console.log(gsap);
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d');
 
@@ -6,12 +7,13 @@ canvas.height = innerHeight;
 debug = false;
 //Objects .....................................................................
 class Player {
-    constructor(context, x, y, radius, color) {
+    constructor(context, x, y, radius, color, velocity) {
         this.context = context;
         this.x = x;
         this.y = y;
         this.radius = radius;
         this.color = color;
+        this.velocity = velocity;
     }
 
     draw() {
@@ -24,10 +26,20 @@ class Player {
         this.context.fillStyle = 'black';
         this.context.arc(this.x, this.y, 1, 0, Math.PI * 2, true);
         this.context.fill();
+
+
     }
 
-    update() {
-
+    update(velocity, e) {
+        this.context.save();
+        this.context.beginPath();
+        this.context.strokeStyle = 'red';
+        //this.context.fillText('*', this.x + velocity.x - 2, velocity.y - this.radius - 5);
+        // this.context.moveTo(canvas.width / 2, canvas.height / 2);
+        this.context.moveTo(canvas.width / 2, canvas.height / 2 + velocity.y);
+        this.context.lineTo(e.clientX, e.clientY);
+        this.context.stroke();
+        this.context.restore();
     }
 }
 
@@ -46,7 +58,6 @@ class Bullets {
         this.context.fillStyle = this.color;
         this.context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true);
         this.context.fill();
-
     }
 
     update() {
@@ -92,16 +103,15 @@ class Enemy {
 //Instating
 const x = canvas.width / 2;
 const y = canvas.height / 2;
-const player = new Player(c, x, y, 30, 'white');
+const player = new Player(c, x, y, 13, 'white');
 //array to group the bullets and enemies
 const bullets = [];
 const enemies = [];
-const e = new Enemy(c, 100, 100, 30, 'green', { x: 1, y: 1 });
 
 //Enemies
 function spawnEnemies() {
     setInterval(() => {
-        const radius = Math.random() * (30 - 4) + 4
+        const radius = Math.random() * (40 - 4) + 4
         let x;
         let y;
         if (Math.random() < 0.5) {
@@ -115,7 +125,7 @@ function spawnEnemies() {
         }
 
         const angle = Math.atan2(canvas.height / 2 - y, canvas.width / 2 - x);
-        const color = 'green'
+        const color = `hsl(${Math.random() * 360},50%, 50%)`
         const velocity = { x: Math.cos(angle), y: Math.sin(angle) };
 
         enemies.push(new Enemy(c, x, y, radius, color, velocity));
@@ -123,16 +133,26 @@ function spawnEnemies() {
     }, 1000);
 
 }
-
+let animateId;
 function animate() {
-    const frame = requestAnimationFrame(animate);
+    animateId = requestAnimationFrame(animate);
     //clean the frame
-    c.clearRect(0, 0, canvas.width, canvas.height);
+    c.fillStyle = 'rgba(0, 0,0, 0.1)';
+    c.fillRect(0, 0, canvas.width, canvas.height);
     //draw the player
     player.draw();
     //draw and update the bullets
-    bullets.forEach((b) => {
+    bullets.forEach((b, bulletIndex) => {
         b.update();
+        if (b.x + b.radius < 0 ||
+            b.x - b.radius > canvas.width ||
+            b.y + b.radius < 0 ||
+            b.y - b.radius > canvas.height
+        ) {
+            setTimeout(() => {
+                bullets.splice(bulletIndex, 1);
+            }, 0);
+        }
     })
 
     enemies.forEach((enemy, index) => {
@@ -141,7 +161,7 @@ function animate() {
         //end game
         if (distp - player.radius - enemy.radius + 1 < 1) {
             console.log('Game over!');
-            cancelAnimationFrame(frame);
+            cancelAnimationFrame(animateId);
         }
 
         bullets.forEach((b, bulletIndex) => {
@@ -149,10 +169,23 @@ function animate() {
 
             if (dist - enemy.radius - b.radius + 1 < 0.00001) {
                 console.info('remove from sreen:' + Number.parseFloat(dist - enemy.radius - b.radius));
-                setTimeout(() => {
-                    enemies.splice(index, 1);
-                    bullets.splice(bulletIndex, 1);
-                }, 0);
+                if (enemy.radius - 10 > 5) {
+                    gsap.to(enemy,{
+                        radius: enemy.radius -10
+                    });
+
+                    setTimeout(() => {
+
+                        bullets.splice(bulletIndex, 1);
+                    }, 0);
+                } else {
+
+
+                    setTimeout(() => {
+                        enemies.splice(index, 1);
+                        bullets.splice(bulletIndex, 1);
+                    }, 0);
+                }
             }
         });
     });
@@ -160,13 +193,23 @@ function animate() {
 }
 
 //mousemove
-addEventListener('click', (event) => {
-
+addEventListener('mousemove', event => {
     const angle = Math.atan2(event.clientY - canvas.height / 2, event.clientX - canvas.width / 2);
 
-    const velocity = { x: Math.cos(angle), y: Math.sin(angle) };
+    const velocity = { x: Math.cos(angle) * 5, y: Math.sin(angle) * 5 };
+    player.update(velocity, event);
+
+
+});
+
+addEventListener('click', (event) => {
+    //console.log(bullets);
+    const angle = Math.atan2(event.clientY - canvas.height / 2, event.clientX - canvas.width / 2);
+
+    const velocity = { x: Math.cos(angle) * 4, y: Math.sin(angle) * 4 };
 
     bullets.push(new Bullets(c, x, y, 5, 'red', velocity));
+    player.update(velocity, event);
 })
 
 animate();
