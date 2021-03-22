@@ -98,6 +98,38 @@ class Enemy {
         this.y += this.velocity.y;
     }
 }
+class Particle {
+    constructor(context, x, y, radius, color, velocity) {
+        this.context = context;
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.velocity = velocity;
+    }
+
+    draw() {
+
+        this.context.beginPath();
+        this.context.fillStyle = this.color;
+        this.context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true);
+        this.context.fill();
+
+        if (debug) {
+            this.context.save();
+            this.context.beginPath();
+            this.context.fillText(this.x + ':\n' + this.y, this.x, this.y - this.radius);
+            this.context.restore();
+        }
+
+    }
+
+    update() {
+        this.draw();
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+    }
+}
 //End .....................................................................
 
 //Instating
@@ -107,6 +139,7 @@ const player = new Player(c, x, y, 13, 'white');
 //array to group the bullets and enemies
 const bullets = [];
 const enemies = [];
+const particles = [];
 
 //Enemies
 function spawnEnemies() {
@@ -154,7 +187,9 @@ function animate() {
             }, 0);
         }
     })
-
+    particles.forEach(e => {
+        e.update();
+    })
     enemies.forEach((enemy, index) => {
         enemy.update();
         const distp = Math.hypot(player.x - enemy.x, player.y - enemy.y);
@@ -169,9 +204,12 @@ function animate() {
 
             if (dist - enemy.radius - b.radius + 1 < 0.00001) {
                 console.info('remove from sreen:' + Number.parseFloat(dist - enemy.radius - b.radius));
+                for (let i = 0; i < 8; i++) {
+                    particles.push(new Particle(c, b.x, b.y, 3, enemy.color, { x: Math.random() - 0.5, y: Math.random() - 0.5 }))
+                }
                 if (enemy.radius - 10 > 5) {
-                    gsap.to(enemy,{
-                        radius: enemy.radius -10
+                    gsap.to(enemy, {
+                        radius: enemy.radius - 10
                     });
 
                     setTimeout(() => {
@@ -189,6 +227,7 @@ function animate() {
             }
         });
     });
+    
 
 }
 
