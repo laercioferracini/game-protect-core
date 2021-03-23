@@ -1,4 +1,4 @@
-console.log(gsap);
+
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d');
 
@@ -80,13 +80,16 @@ class Enemy {
 
         this.context.beginPath();
         this.context.fillStyle = this.color;
+        //this.context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true);
         this.context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true);
         this.context.fill();
 
         if (debug) {
             this.context.save();
             this.context.beginPath();
-            this.context.fillText(this.x + ':\n' + this.y, this.x, this.y - this.radius);
+            this.context.font = '15pt arial';
+
+            this.context.fillText(Math.round(this.x) + ':\n' + Math.round(this.y), this.x, this.y - this.radius - 5);
             this.context.restore();
         }
 
@@ -98,6 +101,7 @@ class Enemy {
         this.y += this.velocity.y;
     }
 }
+const friction = 0.99;
 class Particle {
     constructor(context, x, y, radius, color, velocity) {
         this.context = context;
@@ -106,19 +110,23 @@ class Particle {
         this.radius = radius;
         this.color = color;
         this.velocity = velocity;
+        this.alpha = 1
     }
 
     draw() {
-
+        this.context.save();
+        this.context.globalAlpha = this.alpha;
         this.context.beginPath();
         this.context.fillStyle = this.color;
         this.context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true);
         this.context.fill();
+        this.context.restore();
 
         if (debug) {
             this.context.save();
             this.context.beginPath();
-            this.context.fillText(this.x + ':\n' + this.y, this.x, this.y - this.radius);
+
+            this.context.fillText(Math.round(this.x) + ':\n' + Math.round(this.y), this.x, this.y - this.radius - 5);
             this.context.restore();
         }
 
@@ -126,8 +134,11 @@ class Particle {
 
     update() {
         this.draw();
+        this.velocity.x *= friction;
+        this.velocity.y *= friction;
         this.x += this.velocity.x;
         this.y += this.velocity.y;
+        this.alpha -= 0.01;
     }
 }
 //End .....................................................................
@@ -140,7 +151,9 @@ const player = new Player(c, x, y, 13, 'white');
 const bullets = [];
 const enemies = [];
 const particles = [];
-
+//const e = new Enemy(c, 300, y, 50, 'green', { x: 0, y: 0 });
+//enemies.push(e);
+//e.draw();
 //Enemies
 function spawnEnemies() {
     setInterval(() => {
@@ -158,7 +171,7 @@ function spawnEnemies() {
         }
 
         const angle = Math.atan2(canvas.height / 2 - y, canvas.width / 2 - x);
-        const color = `hsl(${Math.random() * 360},50%, 50%)`
+        const color = `hsl(${Math.random() * 360}, 50%, 50%)`
         const velocity = { x: Math.cos(angle), y: Math.sin(angle) };
 
         enemies.push(new Enemy(c, x, y, radius, color, velocity));
@@ -172,8 +185,10 @@ function animate() {
     //clean the frame
     c.fillStyle = 'rgba(0, 0,0, 0.1)';
     c.fillRect(0, 0, canvas.width, canvas.height);
+    //c.clearRect(0, 0, canvas.width, canvas.height);
     //draw the player
     player.draw();
+
     //draw and update the bullets
     bullets.forEach((b, bulletIndex) => {
         b.update();
@@ -187,9 +202,12 @@ function animate() {
             }, 0);
         }
     })
-    particles.forEach(e => {
-        e.update();
+    particles.forEach((p, index) => {
+        if (p.alpha <= 0) particles.splice(index, 1);
+        else p.update();
+
     })
+
     enemies.forEach((enemy, index) => {
         enemy.update();
         const distp = Math.hypot(player.x - enemy.x, player.y - enemy.y);
@@ -199,13 +217,23 @@ function animate() {
             cancelAnimationFrame(animateId);
         }
 
+
         bullets.forEach((b, bulletIndex) => {
             const dist = Math.hypot(b.x - enemy.x, b.y - enemy.y);
+            if (debug) console.log('dist:' + dist + '|Bx:' + b.x + ' By:' + b.y + '|' + 'Ex:' + enemy.x + ' Ey:' + enemy.y);
 
-            if (dist - enemy.radius - b.radius + 1 < 0.00001) {
-                console.info('remove from sreen:' + Number.parseFloat(dist - enemy.radius - b.radius));
-                for (let i = 0; i < 8; i++) {
-                    particles.push(new Particle(c, b.x, b.y, 3, enemy.color, { x: Math.random() - 0.5, y: Math.random() - 0.5 }))
+            //Verifying colision on enemy
+            if (dist - enemy.radius - b.radius < 0.0001) {
+                console.info('removed from sreen:' + Number.parseFloat(dist - enemy.radius - b.radius));
+
+                for (let i = 0; i < enemy.radius; i++) {
+                    particles.push(new Particle(c,
+                        b.x,
+                        b.y,
+                        Math.random() * 2,
+                        enemy.color,
+                        { x: Math.random() - 0.5, y: Math.random() - 0.5 })
+                    )
                 }
                 if (enemy.radius - 10 > 5) {
                     gsap.to(enemy, {
@@ -227,7 +255,7 @@ function animate() {
             }
         });
     });
-    
+
 
 }
 
@@ -235,8 +263,8 @@ function animate() {
 addEventListener('mousemove', event => {
     const angle = Math.atan2(event.clientY - canvas.height / 2, event.clientX - canvas.width / 2);
 
-    const velocity = { x: Math.cos(angle) * 5, y: Math.sin(angle) * 5 };
-    player.update(velocity, event);
+    const velocity = { x: Math.cos(angle) * 6, y: Math.sin(angle) * 5 };
+    //player.update(velocity, event);
 
 
 });
@@ -245,7 +273,7 @@ addEventListener('click', (event) => {
     //console.log(bullets);
     const angle = Math.atan2(event.clientY - canvas.height / 2, event.clientX - canvas.width / 2);
 
-    const velocity = { x: Math.cos(angle) * 4, y: Math.sin(angle) * 4 };
+    const velocity = { x: Math.cos(angle) * 6, y: Math.sin(angle) * 6 };
 
     bullets.push(new Bullets(c, x, y, 5, 'red', velocity));
     player.update(velocity, event);
