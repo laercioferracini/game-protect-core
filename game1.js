@@ -4,7 +4,7 @@ const c = canvas.getContext('2d');
 
 canvas.width = innerWidth;
 canvas.height = innerHeight;
-debug = false;
+const debug = false;
 //Objects .....................................................................
 class Player {
     constructor(context, x, y, radius, color, velocity) {
@@ -151,7 +151,7 @@ const player = new Player(c, x, y, 13, 'white');
 const bullets = [];
 const enemies = [];
 const particles = [];
-//const e = new Enemy(c, 300, y, 50, 'green', { x: 0, y: 0 });
+//const e = new Enemy(c, x, y, 50, 'green', { x: 0, y: 0 });
 //enemies.push(e);
 //e.draw();
 //Enemies
@@ -227,12 +227,18 @@ function animate() {
                 console.info('removed from sreen:' + Number.parseFloat(dist - enemy.radius - b.radius));
 
                 for (let i = 0; i < enemy.radius; i++) {
-                    particles.push(new Particle(c,
-                        b.x,
-                        b.y,
-                        Math.random() * 2,
-                        enemy.color,
-                        { x: Math.random() - 0.5, y: Math.random() - 0.5 })
+                    particles.push(
+                        new Particle(
+                            c,
+                            b.x,
+                            b.y,
+                            Math.random() * 2,
+                            enemy.color,
+                            {
+                                x: (Math.random() - 0.5) * (Math.random() * 6),
+                                y: (Math.random() - 0.5) * (Math.random() * 6)
+                            }
+                        )
                     )
                 }
                 if (enemy.radius - 10 > 5) {
